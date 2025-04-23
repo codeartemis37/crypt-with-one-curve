@@ -1,6 +1,7 @@
 import numpy as np
 import lzma
 import base64
+import matplotlib.pyplot as plt
 
 def compress_and_encode_key(key: str) -> str:
     compressed = lzma.compress(key.encode('utf-8'))
@@ -16,7 +17,6 @@ def key_to_seed(key: str) -> int:
     return sum(ord(c) for c in key)
 
 def generate_curve(key: str):
-    """Génère une permutation unique des 26 valeurs (0 à 25) basée sur la clé."""
     np.random.seed(key_to_seed(key))
     return np.random.permutation(26)
 
@@ -41,7 +41,6 @@ def chiffre_texte(texte: str, key: str) -> str:
 
 def dechiffre_texte(texte_chiffre: str, key: str) -> str:
     courbe = generate_curve(key)
-    # Création de la permutation inverse
     inverse_courbe = np.argsort(courbe)
     res = []
     for c in texte_chiffre:
@@ -53,15 +52,40 @@ def dechiffre_texte(texte_chiffre: str, key: str) -> str:
             res.append(c)
     return ''.join(res)
 
+def affiche_courbe(courbe):
+    x = np.arange(26)
+    y = courbe
+    lettres = [chr(ord('A') + i) for i in range(26)]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(x, y, '-o', label="Permutation de la clé")
+    plt.scatter(x, y, color='red')
+
+    # Annoter chaque point avec la lettre et les coordonnées
+    for xi, yi, lettre in zip(x, y, lettres):
+        plt.annotate(f"{lettre}:({xi},{yi})", (xi, yi), textcoords="offset points", xytext=(0,8), ha='center', fontsize=8)
+
+    plt.title("Courbe de permutation des lettres (clé)")
+    plt.xlabel("Abscisse (Lettre d'origine, A=0, B=1, ...)")
+    plt.ylabel("Ordonnée (Lettre chiffrée, A=0, ...)")
+    plt.xticks(x, lettres)
+    plt.yticks(x, lettres)
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 def chiffrement():
     texte = input("Texte à chiffrer : ")
     key = input("Clé : ")
     b64key = compress_and_encode_key(key)
+    courbe = generate_curve(key)
     texte_chiffre = chiffre_texte(texte, key)
     print("\nClé compressée et encodée :")
     print(b64key)
     print("Texte chiffré :")
     print(texte_chiffre)
+    affiche_courbe(courbe)
 
 def dechiffrement():
     texte_chiffre = input("Texte chiffré : ")
@@ -70,7 +94,8 @@ def dechiffrement():
     texte_dechiffre = dechiffre_texte(texte_chiffre, key)
     print("\nClé retrouvée :", key)
     print("Texte déchiffré :")
-    print(texte_dechiffre)
+    courbe = generate_curve(key)
+    affiche_courbe(courbe)
 
 def main():
     mode = input("Mode (chiffrement/dechiffrement) ? [c/d] : ").strip().lower()
